@@ -24,11 +24,17 @@ apache path.
 
 httpd.conf:
 
+    # Load module
     LoadModule sass_module modules/mod_sass.so
+
+    # Handler sass script
     AddHandler sass-script .scss
 
-    # Output compressed (minify) [On / Off]
-    SassCompressed on
+    # Output compressed (minify) [On | Off]
+    SassCompressed On
+
+    # Output to CSS file [On | Off]
+    SassOutput Off
 
     # Include paths [PATH]
     SassIncludePaths path/to/inc

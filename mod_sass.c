@@ -7,7 +7,8 @@
 **    LoadModule sass_module modules/mod_sass.so
 **    <IfModule sass_module>
 **      AddHandler sass-script .scss
-**      SassCompressed off (on|off)
+**      SassCompressed   Off (On | Off)
+**      SassOutput       Off (On | Off)
 **      SassIncludePaths path/to/sass
 **    </IfModule sass_module>
 */
@@ -58,19 +59,55 @@
 /* default parameter */
 #define SASS_DEFAULT_CONTENT_TYPE "text/css"
 
-/* sass server config */
+/* sass dir config */
 typedef struct {
     int is_compressed;
+    int is_output;
     char *include_paths;
     //char *image_path;
 } sass_dir_config_t;
 
 module AP_MODULE_DECLARE_DATA sass_module;
 
+/* output css file */
+static void
+sass_output_file(request_rec *r, char *data)
+{
+    char *ext, *fbase, *fname;
+    apr_status_t rc;
+    apr_size_t bytes;
+    apr_file_t *file = NULL;
+
+    ext = strstr(r->filename, ".");
+
+    if (!data || !ext) {
+        return;
+    }
+
+    fbase = apr_pstrndup(r->pool, r->filename, ext - r->filename);
+    fname = apr_psprintf(r->pool, "%s.css", fbase);
+
+    rc = apr_file_open(&file, fname, APR_WRITE | APR_CREATE,
+                       APR_UREAD | APR_UWRITE | APR_GREAD, r->pool);
+    if (rc == APR_SUCCESS) {
+        bytes = strlen(data);
+        rc = apr_file_write(file, data, &bytes);
+        if (rc != APR_SUCCESS) {
+            _RERR(r, "Can't create/write to file: %s", fname);
+        }
+        apr_file_close(file);
+    } else {
+        _RERR(r, "Can't create/write to file: %s", fname);
+    }
+}
+
 /* content handler */
-static int sass_handler(request_rec *r)
+static int
+sass_handler(request_rec *r)
 {
     int retval = OK;
+    sass_dir_config_t *config;
+    struct sass_file_context *context;
 
     if (strcmp(r->handler, "sass-script")) {
         return DECLINED;
@@ -80,10 +117,8 @@ static int sass_handler(request_rec *r)
     r->content_type = SASS_DEFAULT_CONTENT_TYPE;
 
     if (!r->header_only) {
-        sass_dir_config_t *config = ap_get_module_config(r->per_dir_config,
-                                                         &sass_module);
-
-        struct sass_file_context *context = sass_new_file_context();
+        config = ap_get_module_config(r->per_dir_config, &sass_module);
+        context = sass_new_file_context();
         if (!context) {
             return HTTP_INTERNAL_SERVER_ERROR;
         }
@@ -107,6 +142,9 @@ static int sass_handler(request_rec *r)
             retval = HTTP_INTERNAL_SERVER_ERROR;
         } else if (context->output_string) {
             ap_rprintf(r, "%s", context->output_string);
+            if (config->is_output) {
+                sass_output_file(r, context->output_string);
+            }
         } else {
             ap_rputs("Unknown internal error.", r);
             retval = HTTP_INTERNAL_SERVER_ERROR;
@@ -128,6 +166,7 @@ sass_create_dir_config(apr_pool_t *p, char *dir)
         memset(config, 0, sizeof(sass_dir_config_t));
 
         config->is_compressed = 0;
+        config->is_output = 0;
         config->include_paths = "";
         //config->image_path = "";
     }
@@ -150,6 +189,12 @@ sass_merge_dir_config(apr_pool_t *p, void *base_conf, void *override_conf)
         config->is_compressed = base->is_compressed;
     }
 
+    if (override->is_output != 0) {
+        config->is_output = 1;
+    } else {
+        config->is_output = base->is_output;
+    }
+
     if (override->include_paths && strlen(override->include_paths) > 0) {
         config->include_paths = override->include_paths;
     } else {
@@ -165,6 +210,9 @@ static const command_rec sass_cmds[] =
     AP_INIT_FLAG("SassCompressed", ap_set_flag_slot,
                  (void *)APR_OFFSETOF(sass_dir_config_t, is_compressed),
                  RSRC_CONF|ACCESS_CONF, "sass compressed to 'on' or 'off'"),
+    AP_INIT_FLAG("SassOutput", ap_set_flag_slot,
+                 (void *)APR_OFFSETOF(sass_dir_config_t, is_output),
+                 RSRC_CONF|ACCESS_CONF, "sass output (css) to 'on' or 'off'"),
     AP_INIT_TAKE1("SassIncludePaths", ap_set_string_slot,
                   (void *)APR_OFFSETOF(sass_dir_config_t, include_paths),
                   RSRC_CONF|ACCESS_CONF, "sass include paths"),
