@@ -1,26 +1,26 @@
-# mod_sass #
+# mod_sass
 
 mod_sass is Sass handler module for Apache HTTPD Server.
 
-## Dependencies ##
+## Dependencies
 
 * [libsass](https://github.com/hcatlin/libsass/)
 
-## Build ##
+## Build
 
     % ./autogen.sh (or autoreconf -i)
     % ./configure [OPTION]
     % make
     % make install
 
-### Build Options ###
+### Build Options
 
 apache path.
 
 * --with-apxs=PATH  [default=yes]
 * --with-apr=PATH  [default=yes]
 
-## Configration ##
+## Configration
 
 httpd.conf:
 
@@ -39,9 +39,12 @@ httpd.conf:
     # Include paths [PATH]
     SassIncludePaths path/to/inc
 
-## Example ##
+    # Image Path [PATH]
+    SassImagePath path/to/img
 
-example.sass:
+## Example
+
+example.scss:
 
     // Variables
     $blue: #3bbfce;
@@ -143,10 +146,9 @@ example.sass:
       border: 1px #f00;
       background: #fdd; }
 
-    .error.intrusion {
+    .error.intrusion, .intrusion.badError {
       font-size: 1.3em;
       font-weight: bold; }
 
     .badError {
       border-width: 3px; }
-      

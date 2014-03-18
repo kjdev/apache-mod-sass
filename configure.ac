@@ -1,17 +1,17 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT(mod_sass, 0.0.1)
+AC_INIT(mod_sass, 0.1.0, [])
 
 AC_CONFIG_SRCDIR([mod_sass.c])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE(mod_sass, 0.0.1, [NO-DEFINE])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
 # Checks for programs.
 AC_PROG_CXX
+AM_PROG_AR
 AC_PROG_LIBTOOL
 
 # Option for sass debug log level
@@ -26,8 +26,7 @@ AS_IF([test "x${SASS_DEBUG_LOG}" != xno],
       [${SASS_DEBUG_LOG}], [sass debug log level])]
 )
 
-
-# Checks for apxs
+# Checks for apxs.
 AC_ARG_WITH(apxs,
   [AC_HELP_STRING([--with-apxs=PATH], [apxs path [default=yes]])],
   [APXS_PATH="$withval"],
@@ -36,8 +35,8 @@ AC_ARG_WITH(apxs,
 
 AC_PATH_PROG(APXS, apxs, no, ${APXS_PATH})
 
-AS_IF([test "x${APXS}" = xno], AC_MSG_ERROR([apxs not found]),
-  [test "x${APXS}" = x], AC_MSG_ERROR([apxs not found])
+AS_IF([test "x${APXS}" = "xno"], AC_MSG_ERROR([apxs not found]),
+  [test "x${APXS}" = "x"], AC_MSG_ERROR([apxs not found])
 )
 
 APXS_CFLAGS=`${APXS} -q CFLAGS 2> /dev/null`
@@ -49,7 +48,7 @@ APXS_LIBEXECDIR=`${APXS} -q LIBEXECDIR 2> /dev/null`
 APXS_INCLUDEDIR=`${APXS} -q INCLUDEDIR 2> /dev/null`
 APXS_INCLUDES="-I${APXS_INCLUDEDIR}"
 
-# Checks for apr
+# Checks for apr.
 AC_ARG_WITH(apr,
   [AC_HELP_STRING([--with-apr=PATH], [apr config path [default=yes]])],
   [APR_CONFIG="$withval"],
@@ -57,26 +56,26 @@ AC_ARG_WITH(apr,
 )
 
 AC_MSG_CHECKING([whether apr])
-AS_IF([test "x$with_apr" != xno],
+AS_IF([test "x$with_apr" != "xno"],
   [
-   if test ! -x "${APR_CONFIG}" -o -z "${APR_CONFIG}"; then
-     APR_PATH=`${APXS} -q APR_BINDIR 2> /dev/null`
-     APR_CONFIG="${APR_PATH}/apr-1-config"
-     if test ! -x "${APR_CONFIG}"; then
-       APR_CONFIG="${APR_PATH}/apr-config"
-     fi
-   fi
-   APR_INCLUDES=`${APR_CONFIG} --includes 2> /dev/null`
-   APR_CFLAGS=`${APR_CONFIG} --cflags 2> /dev/null`
-   APR_CPPFLAGS=`${APR_CONFIG} --cppflags 2> /dev/null`
-   APR_LDFLAGS=`${APR_CONFIG} --ldflags 2> /dev/null`
-   APR_LIBS=`${APR_CONFIG} --libs 2> /dev/null`
-   AC_MSG_RESULT(enable)
+    if test ! -x "${APR_CONFIG}" -o -z "${APR_CONFIG}"; then
+      APR_PATH=`${APXS} -q APR_BINDIR 2> /dev/null`
+      APR_CONFIG="${APR_PATH}/apr-1-config"
+      if test ! -x "${APR_CONFIG}"; then
+        APR_CONFIG="${APR_PATH}/apr-config"
+      fi
+    fi
+    APR_INCLUDES=`${APR_CONFIG} --includes 2> /dev/null`
+    APR_CFLAGS=`${APR_CONFIG} --cflags 2> /dev/null`
+    APR_CPPFLAGS=`${APR_CONFIG} --cppflags 2> /dev/null`
+    APR_LDFLAGS=`${APR_CONFIG} --ldflags 2> /dev/null`
+    APR_LIBS=`${APR_CONFIG} --libs 2> /dev/null`
+    AC_MSG_RESULT(yes)
   ],
-  AC_MSG_RESULT(disable)
+  AC_MSG_ERROR(apr not found)
 )
 
-# Apache libraries
+# Apache libraries.
 APACHE_MODULEDIR="${APXS_LIBEXECDIR}"
 APACHE_INCLUDES="${APXS_INCLUDES} ${APR_INCLUDES}"
 APACHE_CFLAGS="${APXS_CFLAGS} ${APR_CFLAGS}"
@@ -91,6 +90,5 @@ AC_SUBST(APACHE_CPPFLAGS)
 AC_SUBST(APACHE_LDFLAGS)
 AC_SUBST(APACHE_LIBS)
 
-AC_CONFIG_FILES([Makefile
-                 libsass/Makefile])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

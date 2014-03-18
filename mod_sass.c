@@ -13,13 +13,6 @@
 **    </IfModule sass_module>
 */
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
-/* libsass */
-#include "libsass/sass_interface.h"
-
 /* httpd */
 #include "httpd.h"
 #include "http_config.h"
@@ -28,6 +21,17 @@
 #include "http_log.h"
 #include "ap_config.h"
 #include "apr_strings.h"
+
+/* libsass */
+#include "libsass/sass_interface.h"
+
+#ifdef HAVE_CONFIG_H
+#  undef PACKAGE_NAME
+#  undef PACKAGE_STRING
+#  undef PACKAGE_TARNAME
+#  undef PACKAGE_VERSION
+#  include "config.h"
+#endif
 
 /* log */
 #ifdef AP_SASS_DEBUG_LOG_LEVEL
@@ -64,7 +68,7 @@ typedef struct {
     int is_compressed;
     int is_output;
     char *include_paths;
-    //char *image_path;
+    char *image_path;
 } sass_dir_config_t;
 
 module AP_MODULE_DECLARE_DATA sass_module;
@@ -124,6 +128,7 @@ sass_handler(request_rec *r)
         }
 
         context->options.include_paths = config->include_paths;
+        context->options.image_path = config->image_path;
         if (config->is_compressed) {
             context->options.output_style = SASS_STYLE_COMPRESSED;
         } else {
@@ -168,7 +173,7 @@ sass_create_dir_config(apr_pool_t *p, char *dir)
         config->is_compressed = 0;
         config->is_output = 0;
         config->include_paths = "";
-        //config->image_path = "";
+        config->image_path = "";
     }
 
     return (void *)config;
@@ -201,6 +206,12 @@ sass_merge_dir_config(apr_pool_t *p, void *base_conf, void *override_conf)
         config->include_paths = base->include_paths;
     }
 
+    if (override->image_path && strlen(override->image_path) > 0) {
+        config->image_path = override->image_path;
+    } else {
+        config->image_path = base->image_path;
+    }
+
     return (void *)config;
 }
 
@@ -216,9 +227,9 @@ static const command_rec sass_cmds[] =
     AP_INIT_TAKE1("SassIncludePaths", ap_set_string_slot,
                   (void *)APR_OFFSETOF(sass_dir_config_t, include_paths),
                   RSRC_CONF|ACCESS_CONF, "sass include paths"),
-    //AP_INIT_TAKE1("SassImagePath", ap_set_string_slot,
-    //              (void *)APR_OFFSETOF(sass_dir_config_t, image_path),
-    //              RSRC_CONF|ACCESS_CONF, "sass image path"),
+    AP_INIT_TAKE1("SassImagePath", ap_set_string_slot,
+                  (void *)APR_OFFSETOF(sass_dir_config_t, image_path),
+                  RSRC_CONF|ACCESS_CONF, "sass image path"),
     { NULL }
 };
 
