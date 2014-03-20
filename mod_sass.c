@@ -9,6 +9,7 @@
 **      AddHandler sass-script .scss
 **      SassCompressed   Off (On | Off)
 **      SassOutput       Off (On | Off)
+**      SassDisplayError Off (On | Off)
 **      SassIncludePaths path/to/sass
 **    </IfModule sass_module>
 */
@@ -67,6 +68,7 @@
 typedef struct {
     int is_compressed;
     int is_output;
+    int display_error;
     char *include_paths;
     char *image_path;
 } sass_dir_config_t;
@@ -144,7 +146,9 @@ sass_handler(request_rec *r)
             } else {
                 ap_rputs("An error occured; no error message available.", r);
             }
-            retval = HTTP_INTERNAL_SERVER_ERROR;
+            if (!config->display_error) {
+                retval = HTTP_INTERNAL_SERVER_ERROR;
+            }
         } else if (context->output_string) {
             ap_rprintf(r, "%s", context->output_string);
             if (config->is_output) {
@@ -152,7 +156,9 @@ sass_handler(request_rec *r)
             }
         } else {
             ap_rputs("Unknown internal error.", r);
-            retval = HTTP_INTERNAL_SERVER_ERROR;
+            if (!config->display_error) {
+                retval = HTTP_INTERNAL_SERVER_ERROR;
+            }
         }
 
         sass_free_file_context(context);
@@ -172,6 +178,7 @@ sass_create_dir_config(apr_pool_t *p, char *dir)
 
         config->is_compressed = 0;
         config->is_output = 0;
+        config->display_error = 0;
         config->include_paths = "";
         config->image_path = "";
     }
@@ -200,6 +207,12 @@ sass_merge_dir_config(apr_pool_t *p, void *base_conf, void *override_conf)
         config->is_output = base->is_output;
     }
 
+    if (override->display_error != 0) {
+        config->display_error = 1;
+    } else {
+        config->display_error = base->display_error;
+    }
+
     if (override->include_paths && strlen(override->include_paths) > 0) {
         config->include_paths = override->include_paths;
     } else {
@@ -224,6 +237,9 @@ static const command_rec sass_cmds[] =
     AP_INIT_FLAG("SassOutput", ap_set_flag_slot,
                  (void *)APR_OFFSETOF(sass_dir_config_t, is_output),
                  RSRC_CONF|ACCESS_CONF, "sass output (css) to 'on' or 'off'"),
+    AP_INIT_FLAG("SassDisplayError", ap_set_flag_slot,
+                 (void *)APR_OFFSETOF(sass_dir_config_t, display_error),
+                 RSRC_CONF|ACCESS_CONF, "sass display error to 'on' or 'off'"),
     AP_INIT_TAKE1("SassIncludePaths", ap_set_string_slot,
                   (void *)APR_OFFSETOF(sass_dir_config_t, include_paths),
                   RSRC_CONF|ACCESS_CONF, "sass include paths"),
