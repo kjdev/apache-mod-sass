@@ -8,8 +8,7 @@ mod_sass is Sass handler module for Apache HTTPD Server.
 
 ## Build
 
-    % git submodule init
-    % git submodule update
+    % git clone --recursive --depth=1 https://github.com/kjdev/apache-mod-sass.git
     % ./autogen.sh (or autoreconf -i)
     % ./configure [OPTION]
     % make
