@@ -24,7 +24,8 @@
 #include "apr_strings.h"
 
 /* libsass */
-#include "libsass/sass_interface.h"
+#include "sass.h"
+#include "sass/interface.h"
 
 #ifdef HAVE_CONFIG_H
 #  undef PACKAGE_NAME
@@ -70,7 +71,6 @@ typedef struct {
     int is_output;
     int display_error;
     char *include_paths;
-    char *image_path;
 } sass_dir_config_t;
 
 module AP_MODULE_DECLARE_DATA sass_module;
@@ -130,7 +130,6 @@ sass_handler(request_rec *r)
         }
 
         context->options.include_paths = config->include_paths;
-        context->options.image_path = config->image_path;
         if (config->is_compressed) {
             context->options.output_style = SASS_STYLE_COMPRESSED;
         } else {
@@ -180,7 +179,6 @@ sass_create_dir_config(apr_pool_t *p, char *dir)
         config->is_output = 0;
         config->display_error = 0;
         config->include_paths = "";
-        config->image_path = "";
     }
 
     return (void *)config;
@@ -219,12 +217,6 @@ sass_merge_dir_config(apr_pool_t *p, void *base_conf, void *override_conf)
         config->include_paths = base->include_paths;
     }
 
-    if (override->image_path && strlen(override->image_path) > 0) {
-        config->image_path = override->image_path;
-    } else {
-        config->image_path = base->image_path;
-    }
-
     return (void *)config;
 }
 
@@ -243,9 +235,6 @@ static const command_rec sass_cmds[] =
     AP_INIT_TAKE1("SassIncludePaths", ap_set_string_slot,
                   (void *)APR_OFFSETOF(sass_dir_config_t, include_paths),
                   RSRC_CONF|ACCESS_CONF, "sass include paths"),
-    AP_INIT_TAKE1("SassImagePath", ap_set_string_slot,
-                  (void *)APR_OFFSETOF(sass_dir_config_t, image_path),
-                  RSRC_CONF|ACCESS_CONF, "sass image path"),
     { NULL }
 };
 

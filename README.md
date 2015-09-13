@@ -40,9 +40,6 @@ httpd.conf:
     # Include paths [PATH]
     SassIncludePaths path/to/inc
 
-    # Image Path [PATH]
-    SassImagePath path/to/img
-
 ## Example
 
 example.scss:
